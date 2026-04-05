@@ -10,6 +10,7 @@ import { ChevronDownIcon } from '@radix-ui/react-icons';
 export default function Controls() {
   const {
     keyframes,
+    activeKeyframe,
     duration,
     delay,
     iterations,
@@ -18,6 +19,7 @@ export default function Controls() {
     isPlaying,
     isLooping,
     updateKeyframe,
+    setActiveKeyframe,
     setDuration,
     setDelay,
     setIterations,
@@ -83,7 +85,11 @@ export default function Controls() {
       </div>
 
       {/* Keyframe tabs */}
-      <Tabs.Root defaultValue="from" className="flex-1 flex flex-col overflow-hidden">
+      <Tabs.Root
+        value={activeKeyframe}
+        onValueChange={(v) => setActiveKeyframe(v as 'from' | 'to')}
+        className="flex-1 flex flex-col overflow-hidden"
+      >
         <Tabs.List className="flex border-b border-gray-100 px-4">
           <Tabs.Trigger
             value="from"

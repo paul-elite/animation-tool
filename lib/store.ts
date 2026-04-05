@@ -15,6 +15,9 @@ export interface AnimationState {
     to: Keyframe;
   };
 
+  // Active keyframe being edited
+  activeKeyframe: 'from' | 'to';
+
   // Animation properties
   duration: number;
   delay: number;
@@ -27,11 +30,13 @@ export interface AnimationState {
   isLooping: boolean;
 
   // Element properties
-  elementType: 'box' | 'text';
+  elementType: 'box' | 'text' | 'svg';
   elementText: string;
+  elementSvg: string | null;
 
   // Actions
   updateKeyframe: (keyframe: 'from' | 'to', property: keyof Keyframe, value: number) => void;
+  setActiveKeyframe: (keyframe: 'from' | 'to') => void;
   setDuration: (duration: number) => void;
   setDelay: (delay: number) => void;
   setIterations: (iterations: number | 'infinite') => void;
@@ -39,9 +44,11 @@ export interface AnimationState {
   setTransformOrigin: (origin: string) => void;
   togglePlay: () => void;
   toggleLoop: () => void;
-  setElementType: (type: 'box' | 'text') => void;
+  setElementType: (type: 'box' | 'text' | 'svg') => void;
   setElementText: (text: string) => void;
+  setElementSvg: (svg: string | null) => void;
   resetAnimation: () => void;
+  clearElement: () => void;
 }
 
 const defaultKeyframe: Keyframe = {
@@ -58,6 +65,8 @@ export const useAnimationStore = create<AnimationState>((set) => ({
     to: { ...defaultKeyframe, translateX: 100, rotate: 180 },
   },
 
+  activeKeyframe: 'from',
+
   duration: 1,
   delay: 0,
   iterations: 1,
@@ -69,6 +78,7 @@ export const useAnimationStore = create<AnimationState>((set) => ({
 
   elementType: 'box',
   elementText: 'Hello',
+  elementSvg: null,
 
   updateKeyframe: (keyframe, property, value) =>
     set((state) => ({
@@ -81,6 +91,8 @@ export const useAnimationStore = create<AnimationState>((set) => ({
       },
     })),
 
+  setActiveKeyframe: (keyframe) => set({ activeKeyframe: keyframe }),
+
   setDuration: (duration) => set({ duration }),
   setDelay: (delay) => set({ delay }),
   setIterations: (iterations) => set({ iterations }),
@@ -92,6 +104,7 @@ export const useAnimationStore = create<AnimationState>((set) => ({
 
   setElementType: (type) => set({ elementType: type }),
   setElementText: (text) => set({ elementText: text }),
+  setElementSvg: (svg) => set({ elementSvg: svg, elementType: 'svg' }),
 
   resetAnimation: () =>
     set({
@@ -103,5 +116,11 @@ export const useAnimationStore = create<AnimationState>((set) => ({
       delay: 0,
       iterations: 1,
       easing: 'ease',
+    }),
+
+  clearElement: () =>
+    set({
+      elementType: 'box',
+      elementSvg: null,
     }),
 }));
