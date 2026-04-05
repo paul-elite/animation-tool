@@ -30,6 +30,7 @@ export default function Canvas() {
   const [isDragging, setIsDragging] = useState(false);
   const [isRotating, setIsRotating] = useState(false);
   const [rotationStart, setRotationStart] = useState({ angle: 0, startRotation: 0 });
+  const [hoveredHandle, setHoveredHandle] = useState<number | null>(null);
 
   // Current keyframe values
   const currentKf = keyframes[activeKeyframe];
@@ -130,6 +131,7 @@ export default function Canvas() {
 
     const handleMouseUp = () => {
       setIsRotating(false);
+      setHoveredHandle(null);
     };
 
     window.addEventListener('mousemove', handleMouseMove);
@@ -306,18 +308,24 @@ export default function Canvas() {
           >
             {/* Corner rotation handles */}
             {[
-              { position: '-top-5 -left-5', cursor: 'nwse-resize' },
-              { position: '-top-5 -right-5', cursor: 'nesw-resize' },
-              { position: '-bottom-5 -left-5', cursor: 'nesw-resize' },
-              { position: '-bottom-5 -right-5', cursor: 'nwse-resize' },
+              { position: '-top-5 -left-5' },
+              { position: '-top-5 -right-5' },
+              { position: '-bottom-5 -left-5' },
+              { position: '-bottom-5 -right-5' },
             ].map((handle, idx) => (
               <div
                 key={idx}
                 onMouseDown={handleRotationStart}
-                className={`absolute ${handle.position} w-4 h-4 pointer-events-auto`}
+                onMouseEnter={() => setHoveredHandle(idx)}
+                onMouseLeave={() => !isRotating && setHoveredHandle(null)}
+                className={`absolute ${handle.position} w-6 h-6 pointer-events-auto flex items-center justify-center`}
                 style={{ cursor: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2'%3E%3Cpath d='M21 12a9 9 0 1 1-9-9'/%3E%3Cpath d='M12 3v3M21 12h-3'/%3E%3C/svg%3E") 12 12, pointer` }}
               >
-                <div className="w-2.5 h-2.5 bg-white border-2 border-blue-500 rounded-full absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 hover:scale-125 transition-transform" />
+                <div
+                  className={`w-2.5 h-2.5 bg-white border-2 border-blue-500 rounded-full transition-all duration-150 ${
+                    hoveredHandle === idx || isRotating ? 'opacity-100 scale-100' : 'opacity-0 scale-0'
+                  }`}
+                />
               </div>
             ))}
           </div>
