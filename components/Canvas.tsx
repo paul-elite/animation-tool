@@ -388,8 +388,9 @@ export default function Canvas() {
             transformOrigin,
             width: elementWidth,
             height: elementHeight,
+            boxShadow: '0 0 0 0.5px rgba(0, 0, 0, 0.05)',
           }}
-          className="bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl shadow-lg"
+          className="bg-white rounded-xl"
         >
           {elementType === 'text' && elementText}
           {elementType === 'svg' && elementSvg && (
@@ -462,8 +463,9 @@ export default function Canvas() {
               cursor: isResizing ? getResizeCursor(resizeHandle) : hoveredResizeHandle ? getResizeCursor(hoveredResizeHandle) : 'grab',
               width: elementWidth,
               height: elementHeight,
+              boxShadow: '0 0 0 0.5px rgba(0, 0, 0, 0.05)',
             }}
-            className="bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl shadow-lg relative"
+            className="bg-white rounded-xl relative"
           >
             {elementType === 'text' && elementText}
             {elementType === 'svg' && elementSvg && (
