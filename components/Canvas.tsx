@@ -343,7 +343,7 @@ export default function Canvas() {
   return (
     <div
       ref={canvasRef}
-      className="flex-1 flex items-center justify-center bg-[#FAFAFA] rounded-xl border border-gray-200 overflow-hidden relative"
+      className="flex-1 flex items-center justify-center bg-[#F5F5F5] rounded-xl border border-gray-200 overflow-hidden relative"
       tabIndex={0}
     >
       {/* Grid background */}
