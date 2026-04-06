@@ -41,7 +41,6 @@ export default function Canvas() {
   const [isResizing, setIsResizing] = useState(false);
   const [resizeHandle, setResizeHandle] = useState<ResizeHandle>(null);
   const [resizeStart, setResizeStart] = useState({ x: 0, y: 0, width: 0, height: 0 });
-  const [resizeOffset, setResizeOffset] = useState({ x: 0, y: 0 });
   const [hoveredResizeHandle, setHoveredResizeHandle] = useState<ResizeHandle>(null);
 
   // Current keyframe values
@@ -181,25 +180,19 @@ export default function Canvas() {
 
       let newWidth = resizeStart.width;
       let newHeight = resizeStart.height;
-      let offsetX = 0;
-      let offsetY = 0;
 
-      // Calculate new dimensions based on handle
+      // Calculate new dimensions based on handle - resize from center
       if (resizeHandle.includes('e')) {
-        newWidth = Math.max(24, resizeStart.width + deltaX);
+        newWidth = Math.max(24, resizeStart.width + deltaX * 2);
       }
       if (resizeHandle.includes('w')) {
-        const widthChange = Math.min(deltaX, resizeStart.width - 24);
-        newWidth = resizeStart.width - widthChange;
-        offsetX = widthChange / 2; // Compensate position to keep right edge fixed
+        newWidth = Math.max(24, resizeStart.width - deltaX * 2);
       }
       if (resizeHandle.includes('s')) {
-        newHeight = Math.max(24, resizeStart.height + deltaY);
+        newHeight = Math.max(24, resizeStart.height + deltaY * 2);
       }
       if (resizeHandle.includes('n')) {
-        const heightChange = Math.min(deltaY, resizeStart.height - 24);
-        newHeight = resizeStart.height - heightChange;
-        offsetY = heightChange / 2; // Compensate position to keep bottom edge fixed
+        newHeight = Math.max(24, resizeStart.height - deltaY * 2);
       }
 
       // Hold Shift for proportional resize
@@ -213,19 +206,12 @@ export default function Canvas() {
       }
 
       setElementSize(Math.round(newWidth), Math.round(newHeight));
-      setResizeOffset({ x: offsetX, y: offsetY });
     };
 
     const handleMouseUp = () => {
-      // Apply the offset to the actual position
-      if (resizeOffset.x !== 0 || resizeOffset.y !== 0) {
-        updateKeyframe(activeKeyframe, 'translateX', Math.round(currentKf.translateX + resizeOffset.x));
-        updateKeyframe(activeKeyframe, 'translateY', Math.round(currentKf.translateY + resizeOffset.y));
-      }
       setIsResizing(false);
       setResizeHandle(null);
       setHoveredResizeHandle(null);
-      setResizeOffset({ x: 0, y: 0 });
     };
 
     window.addEventListener('mousemove', handleMouseMove);
@@ -235,7 +221,7 @@ export default function Canvas() {
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [isResizing, resizeHandle, resizeStart, setElementSize, resizeOffset, updateKeyframe, activeKeyframe, currentKf.translateX, currentKf.translateY]);
+  }, [isResizing, resizeHandle, resizeStart, setElementSize]);
 
   // Handle paste from clipboard
   useEffect(() => {
@@ -333,8 +319,8 @@ export default function Canvas() {
 
   // Calculate position for non-playing state
   const staticPosition = {
-    x: currentKf.translateX + dragOffset.x + resizeOffset.x,
-    y: currentKf.translateY + dragOffset.y + resizeOffset.y,
+    x: currentKf.translateX + dragOffset.x,
+    y: currentKf.translateY + dragOffset.y,
     scale: currentKf.scale,
     rotate: currentKf.rotate,
     opacity: currentKf.opacity,
