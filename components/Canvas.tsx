@@ -440,7 +440,7 @@ export default function Canvas() {
           <motion.div
             ref={elementRef}
             key="editing"
-            drag
+            drag={!hoveredResizeHandle && !isResizing}
             dragMomentum={false}
             dragElastic={0}
             onDragStart={() => setIsDragging(true)}
@@ -455,11 +455,11 @@ export default function Canvas() {
               y: dragOffset.y,
             }}
             transition={{ type: 'tween', duration: 0.05 }}
-            whileHover={{ boxShadow: '0 0 0 3px rgba(59, 130, 246, 0.5)' }}
+            whileHover={!hoveredResizeHandle ? { boxShadow: '0 0 0 3px rgba(59, 130, 246, 0.5)' } : {}}
             whileDrag={{ cursor: 'grabbing' }}
             style={{
               transformOrigin,
-              cursor: isRotating || isResizing ? 'grabbing' : 'grab',
+              cursor: isResizing ? getResizeCursor(resizeHandle) : hoveredResizeHandle ? getResizeCursor(hoveredResizeHandle) : 'grab',
               width: elementWidth,
               height: elementHeight,
             }}
