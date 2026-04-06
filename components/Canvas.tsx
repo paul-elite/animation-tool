@@ -4,6 +4,8 @@ import { motion, type Easing } from 'framer-motion';
 import { useEffect, useCallback, useRef, useState } from 'react';
 import { useAnimationStore } from '@/lib/store';
 
+type ResizeHandle = 'n' | 's' | 'e' | 'w' | 'ne' | 'nw' | 'se' | 'sw' | null;
+
 export default function Canvas() {
   const {
     keyframes,
@@ -18,8 +20,11 @@ export default function Canvas() {
     elementType,
     elementText,
     elementSvg,
+    elementWidth,
+    elementHeight,
     updateKeyframe,
     setElementSvg,
+    setElementSize,
     clearElement,
   } = useAnimationStore();
 
@@ -31,6 +36,12 @@ export default function Canvas() {
   const [isRotating, setIsRotating] = useState(false);
   const [rotationStart, setRotationStart] = useState({ angle: 0, startRotation: 0 });
   const [hoveredHandle, setHoveredHandle] = useState<number | null>(null);
+
+  // Resize state
+  const [isResizing, setIsResizing] = useState(false);
+  const [resizeHandle, setResizeHandle] = useState<ResizeHandle>(null);
+  const [resizeStart, setResizeStart] = useState({ x: 0, y: 0, width: 0, height: 0 });
+  const [hoveredResizeHandle, setHoveredResizeHandle] = useState<ResizeHandle>(null);
 
   // Current keyframe values
   const currentKf = keyframes[activeKeyframe];
@@ -66,7 +77,7 @@ export default function Canvas() {
     []
   );
 
-  // Handle drag end - update the active keyframe position
+  // Handle drag end
   const handleDragEnd = useCallback(
     (_: MouseEvent | TouchEvent | PointerEvent, info: { offset: { x: number; y: number } }) => {
       setIsDragging(false);
@@ -121,7 +132,6 @@ export default function Canvas() {
 
       let newRotation = rotationStart.startRotation + deltaAngle;
 
-      // Snap to 15-degree increments when holding Shift
       if (e.shiftKey) {
         newRotation = Math.round(newRotation / 15) * 15;
       }
@@ -143,7 +153,77 @@ export default function Canvas() {
     };
   }, [isRotating, rotationStart, currentKf.translateX, currentKf.translateY, activeKeyframe, updateKeyframe]);
 
-  // Handle paste from clipboard (Figma SVG)
+  // Handle resize start
+  const handleResizeStart = useCallback(
+    (e: React.MouseEvent, handle: ResizeHandle) => {
+      e.stopPropagation();
+      e.preventDefault();
+      setIsResizing(true);
+      setResizeHandle(handle);
+      setResizeStart({
+        x: e.clientX,
+        y: e.clientY,
+        width: elementWidth,
+        height: elementHeight,
+      });
+    },
+    [elementWidth, elementHeight]
+  );
+
+  // Handle resize move
+  useEffect(() => {
+    if (!isResizing || !resizeHandle) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      const deltaX = e.clientX - resizeStart.x;
+      const deltaY = e.clientY - resizeStart.y;
+
+      let newWidth = resizeStart.width;
+      let newHeight = resizeStart.height;
+
+      // Calculate new dimensions based on handle
+      if (resizeHandle.includes('e')) {
+        newWidth = Math.max(24, resizeStart.width + deltaX);
+      }
+      if (resizeHandle.includes('w')) {
+        newWidth = Math.max(24, resizeStart.width - deltaX);
+      }
+      if (resizeHandle.includes('s')) {
+        newHeight = Math.max(24, resizeStart.height + deltaY);
+      }
+      if (resizeHandle.includes('n')) {
+        newHeight = Math.max(24, resizeStart.height - deltaY);
+      }
+
+      // Hold Shift for proportional resize
+      if (e.shiftKey) {
+        const aspectRatio = resizeStart.width / resizeStart.height;
+        if (resizeHandle.includes('e') || resizeHandle.includes('w')) {
+          newHeight = newWidth / aspectRatio;
+        } else {
+          newWidth = newHeight * aspectRatio;
+        }
+      }
+
+      setElementSize(Math.round(newWidth), Math.round(newHeight));
+    };
+
+    const handleMouseUp = () => {
+      setIsResizing(false);
+      setResizeHandle(null);
+      setHoveredResizeHandle(null);
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isResizing, resizeHandle, resizeStart, setElementSize]);
+
+  // Handle paste from clipboard
   useEffect(() => {
     const handlePaste = async (e: ClipboardEvent) => {
       const items = e.clipboardData?.items;
@@ -204,6 +284,21 @@ export default function Canvas() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [elementSvg, clearElement]);
 
+  // Get cursor for resize handle
+  const getResizeCursor = (handle: ResizeHandle): string => {
+    const cursors: Record<string, string> = {
+      n: 'ns-resize',
+      s: 'ns-resize',
+      e: 'ew-resize',
+      w: 'ew-resize',
+      ne: 'nesw-resize',
+      sw: 'nesw-resize',
+      nw: 'nwse-resize',
+      se: 'nwse-resize',
+    };
+    return cursors[handle || ''] || 'default';
+  };
+
   // Animation variants
   const animationVariants = {
     from: {
@@ -230,6 +325,20 @@ export default function Canvas() {
     rotate: currentKf.rotate,
     opacity: currentKf.opacity,
   };
+
+  // Resize handles configuration
+  const resizeHandles: { handle: ResizeHandle; position: string; size: string }[] = [
+    // Corners
+    { handle: 'nw', position: 'top-0 left-0 -translate-x-1/2 -translate-y-1/2', size: 'w-3 h-3' },
+    { handle: 'ne', position: 'top-0 right-0 translate-x-1/2 -translate-y-1/2', size: 'w-3 h-3' },
+    { handle: 'sw', position: 'bottom-0 left-0 -translate-x-1/2 translate-y-1/2', size: 'w-3 h-3' },
+    { handle: 'se', position: 'bottom-0 right-0 translate-x-1/2 translate-y-1/2', size: 'w-3 h-3' },
+    // Edges
+    { handle: 'n', position: 'top-0 left-1/2 -translate-x-1/2 -translate-y-1/2', size: 'w-2 h-2' },
+    { handle: 's', position: 'bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2', size: 'w-2 h-2' },
+    { handle: 'e', position: 'top-1/2 right-0 translate-x-1/2 -translate-y-1/2', size: 'w-2 h-2' },
+    { handle: 'w', position: 'top-1/2 left-0 -translate-x-1/2 -translate-y-1/2', size: 'w-2 h-2' },
+  ];
 
   return (
     <div
@@ -262,7 +371,7 @@ export default function Canvas() {
 
       {/* Animated element */}
       {isPlaying ? (
-        // Playing mode - use CSS animation
+        // Playing mode
         <motion.div
           key="playing"
           initial="from"
@@ -275,14 +384,12 @@ export default function Canvas() {
             repeat: iterations === 'infinite' ? Infinity : iterations - 1,
             repeatType: 'reverse',
           }}
-          style={{ transformOrigin }}
-          className={`${
-            elementType === 'box'
-              ? 'w-24 h-24 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl shadow-lg'
-              : elementType === 'text'
-              ? 'text-4xl font-bold text-gray-800'
-              : 'w-32 h-32'
-          }`}
+          style={{
+            transformOrigin,
+            width: elementWidth,
+            height: elementHeight,
+          }}
+          className="bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl shadow-lg"
         >
           {elementType === 'text' && elementText}
           {elementType === 'svg' && elementSvg && (
@@ -293,20 +400,19 @@ export default function Canvas() {
           )}
         </motion.div>
       ) : (
-        // Editing mode - draggable with rotation handles
+        // Editing mode
         <div className="relative" style={{ transform: `translate(${staticPosition.x}px, ${staticPosition.y}px)` }}>
-          {/* Rotation handles - positioned outside the element */}
+          {/* Rotation handles - outer corners */}
           <div
             className="absolute pointer-events-none"
             style={{
               top: '50%',
               left: '50%',
               transform: `translate(-50%, -50%) rotate(${staticPosition.rotate}deg)`,
-              width: elementType === 'box' ? '96px' : elementType === 'svg' ? '128px' : 'auto',
-              height: elementType === 'box' ? '96px' : elementType === 'svg' ? '128px' : 'auto',
+              width: elementWidth,
+              height: elementHeight,
             }}
           >
-            {/* Corner rotation handles */}
             {[
               { position: '-top-5 -left-5' },
               { position: '-top-5 -right-5' },
@@ -330,7 +436,7 @@ export default function Canvas() {
             ))}
           </div>
 
-          {/* The actual draggable element */}
+          {/* The draggable element */}
           <motion.div
             ref={elementRef}
             key="editing"
@@ -353,15 +459,11 @@ export default function Canvas() {
             whileDrag={{ cursor: 'grabbing' }}
             style={{
               transformOrigin,
-              cursor: isRotating ? 'grabbing' : 'grab',
+              cursor: isRotating || isResizing ? 'grabbing' : 'grab',
+              width: elementWidth,
+              height: elementHeight,
             }}
-            className={`${
-              elementType === 'box'
-                ? 'w-24 h-24 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl shadow-lg'
-                : elementType === 'text'
-                ? 'text-4xl font-bold text-gray-800'
-                : 'w-32 h-32'
-            }`}
+            className="bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl shadow-lg relative"
           >
             {elementType === 'text' && elementText}
             {elementType === 'svg' && elementSvg && (
@@ -370,6 +472,24 @@ export default function Canvas() {
                 dangerouslySetInnerHTML={{ __html: elementSvg }}
               />
             )}
+
+            {/* Resize handles */}
+            {resizeHandles.map(({ handle, position, size }) => (
+              <div
+                key={handle}
+                onMouseDown={(e) => handleResizeStart(e, handle)}
+                onMouseEnter={() => setHoveredResizeHandle(handle)}
+                onMouseLeave={() => !isResizing && setHoveredResizeHandle(null)}
+                className={`absolute ${position} ${size} pointer-events-auto flex items-center justify-center`}
+                style={{ cursor: getResizeCursor(handle) }}
+              >
+                <div
+                  className={`w-full h-full bg-white border-2 border-blue-500 rounded-sm transition-all duration-150 ${
+                    hoveredResizeHandle === handle || isResizing ? 'opacity-100 scale-100' : 'opacity-0 scale-0'
+                  }`}
+                />
+              </div>
+            ))}
           </motion.div>
         </div>
       )}
@@ -395,6 +515,14 @@ export default function Canvas() {
             <div className="w-2 h-2 bg-purple-500 rounded-full" />
             <span className="text-xs text-gray-500">
               Rotation: {currentKf.rotate}°
+            </span>
+          </div>
+        )}
+        {isResizing && (
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 bg-orange-500 rounded-full" />
+            <span className="text-xs text-gray-500">
+              {elementWidth} × {elementHeight}
             </span>
           </div>
         )}

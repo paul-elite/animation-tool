@@ -33,6 +33,8 @@ export interface AnimationState {
   elementType: 'box' | 'text' | 'svg';
   elementText: string;
   elementSvg: string | null;
+  elementWidth: number;
+  elementHeight: number;
 
   // Actions
   updateKeyframe: (keyframe: 'from' | 'to', property: keyof Keyframe, value: number) => void;
@@ -47,6 +49,7 @@ export interface AnimationState {
   setElementType: (type: 'box' | 'text' | 'svg') => void;
   setElementText: (text: string) => void;
   setElementSvg: (svg: string | null) => void;
+  setElementSize: (width: number, height: number) => void;
   resetAnimation: () => void;
   clearElement: () => void;
 }
@@ -79,6 +82,8 @@ export const useAnimationStore = create<AnimationState>((set) => ({
   elementType: 'box',
   elementText: 'Hello',
   elementSvg: null,
+  elementWidth: 96,
+  elementHeight: 96,
 
   updateKeyframe: (keyframe, property, value) =>
     set((state) => ({
@@ -105,6 +110,7 @@ export const useAnimationStore = create<AnimationState>((set) => ({
   setElementType: (type) => set({ elementType: type }),
   setElementText: (text) => set({ elementText: text }),
   setElementSvg: (svg) => set({ elementSvg: svg, elementType: 'svg' }),
+  setElementSize: (width, height) => set({ elementWidth: width, elementHeight: height }),
 
   resetAnimation: () =>
     set({
@@ -122,5 +128,7 @@ export const useAnimationStore = create<AnimationState>((set) => ({
     set({
       elementType: 'box',
       elementSvg: null,
+      elementWidth: 96,
+      elementHeight: 96,
     }),
 }));
